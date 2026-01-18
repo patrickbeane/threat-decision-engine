@@ -1,0 +1,41 @@
+<div style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th>IP</th>
+                <th>Decision</th>
+                <th>Severity</th>
+                <th>Confidence</th>
+                <th>TTL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in decisions %}
+            <tr>
+                <td><a href="/explain/{{ d.ip }}">{{ d.ip }}</a></td>
+
+                <td>
+                    {% if d.decision == "PERM_BAN" %}
+                        <span class="contrast">PERM</span>
+                    {% elif d.decision == "TEMP_BAN" %}
+                        <span class="secondary">TEMP</span>
+                    {% else %}
+                        <span class="muted">WATCH</span>
+                    {% endif %}
+                </td>
+
+                <td>{{ d.evidence.severity }}</td>
+                <td>{{ d.confidence.label }}</td>
+
+                <td>
+                    {% if d.ttl_seconds %}
+                        {{ d.ttl_seconds // 3600 }}h
+                    {% else %}
+                        ∞
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

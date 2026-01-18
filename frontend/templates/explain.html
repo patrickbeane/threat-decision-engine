@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Explain {{ decision.ip }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+</head>
+<body>
+
+<main class="container">
+
+    <h1>Decision for {{ decision.ip }}</h1>
+
+    <article>
+        <header>
+            <strong>{{ decision.decision }}</strong>
+            <span>Confidence: {{ decision.confidence.label }}</span>
+        </header>
+
+        <h3>Reasons</h3>
+        <ul>
+            {% for reason in decision.reason_codes %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Evidence</h3>
+        <ul>
+            <li>Nodes observed: {{ decision.evidence.node_count }}</li>
+            <li>Severity: {{ decision.evidence.severity }}</li>
+            <li>
+                TTL remaining:
+                {% if decision.ttl_seconds %}
+                    {{ (decision.ttl_seconds // 3600) }}h
+                {% else %}
+                    ∞
+                {% endif %}
+            </li>
+        </ul>
+
+        <a href="/" role="button">Back to Dashboard</a>
+    </article>
+
+</main>
+
+</body>
+</html>

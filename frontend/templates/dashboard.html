@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Observability Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <style>
+      nav.pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+      }
+      nav.pagination span {
+        opacity: 0.7;
+      }
+    </style>
+</head>
+<body>
+
+<main class="container">
+
+    <h1>Active Decisions</h1>
+    <p class="timestamp">Last updated: {{ delta }}</p>
+
+    <section>
+        <h2>Permanent Bans ({{ perm_total }})</h2>
+
+        {% with decisions=perm %}
+            {% include "decision_table.html" %}
+        {% endwith %}
+
+        {% set page = perm_page %}
+        {% set total = perm_total %}
+        {% set param = "perm_page" %}
+        {% include "pagination.html" %}
+    </section>
+
+    <section>
+        <h2>Temporary Bans ({{ temp_total }})</h2>
+
+        {% with decisions=temp %}
+            {% include "decision_table.html" %}
+        {% endwith %}
+
+        {% set page = temp_page %}
+        {% set total = temp_total %}
+        {% set param = "temp_page" %}
+        {% include "pagination.html" %}
+    </section>
+
+    <section>
+        <h2>Watchlist ({{ watch_total }})</h2>
+
+        {% with decisions=watch %}
+            {% include "decision_table.html" %}
+        {% endwith %}
+
+        {% set page = watch_page %}
+        {% set total = watch_total %}
+        {% set param = "watch_page" %}
+        {% include "pagination.html" %}
+    </section>
+
+</main>
+
+</body>
+</html>

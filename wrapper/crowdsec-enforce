@@ -1,0 +1,42 @@
+#!/bin/sh
+set -e
+
+ACTION="$1"
+IP="$2"
+DURATION="$3"
+REASON="$4"
+
+if [ -z "$ACTION" ] || [ -z "$IP" ]; then
+    echo "Usage: crowdsec-enforce {ban|delete} <ip> [duration] [reason]" >&2
+    exit 1
+fi
+
+case "$ACTION" in
+    ban)
+        if [ -z "$DURATION" ]; then
+            echo "Error: ban requires duration (e.g. 12h, 14d, perm)" >&2
+            exit 1
+        fi
+
+        if [ -z "$REASON" ]; then
+            REASON="threat-engine"
+        fi
+
+        if [ "$DURATION" = "perm" ]; then
+            DURATION="14d"
+        fi
+
+        exec /usr/bin/cscli decisions add \
+            --ip "$IP" \
+            --type ban \
+            --duration "$DURATION" \
+            --reason "$REASON"
+        ;;
+    delete)
+        exec /usr/bin/cscli decisions delete --ip "$IP"
+        ;;
+    *)
+        echo "Invalid action: $ACTION" >&2
+        exit 1
+        ;;
+esac
