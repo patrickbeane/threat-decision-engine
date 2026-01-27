@@ -19,8 +19,8 @@
 
         <h3>Reasons</h3>
         <ul>
-            {% for reason in decision.reason_codes %}
-            <li>{{ reason }}</li>
+            {% for reason in decision.reasons %}
+            <li>{{ reason.description }}</li>
             {% endfor %}
         </ul>
 
@@ -30,8 +30,8 @@
             <li>Severity: {{ decision.evidence.severity }}</li>
             <li>
                 TTL remaining:
-                {% if decision.ttl_seconds %}
-                    {{ (decision.ttl_seconds // 3600) }}h
+                {% if decision.ttl_display %}
+                    {{ (decision.ttl_display) }}
                 {% else %}
                     ∞
                 {% endif %}

@@ -1,7 +1,7 @@
 # threat_engine/enforce.py
 
 import subprocess
-from threat_engine.config import DECISION_TTLS
+from threat_engine.policies import DECISION_RANK, DECISION_TTLS
 from threat_engine.utils import format_duration
 
 WRAPPER = "/usr/bin/crowdsec-enforce"
@@ -23,6 +23,22 @@ def format_enforcement_preview(decisions):
 
     lines.append("\nRe-run with --yes to apply these actions.")
     return "\n".join(lines)
+
+def should_enforce(existing: dict | None, predicted: dict) -> bool:
+    if not existing:
+        return True
+
+    if (
+        existing["decision"] == predicted["decision"]
+        and existing.get("ttl_seconds", 0) > 0
+    ):
+        return False
+
+    if DECISION_RANK[predicted["decision"]] > DECISION_RANK[existing["decision"]]:
+        return True
+
+    return False
+
 
 def enforce_crowdsec(decision: dict):
     action = decision.get("decision")

@@ -17,6 +17,18 @@ REASON_EXPLANATIONS = {
         "Enforcement was escalated due to repeated activity across nodes.",
     "ESCALATED_DISTRIBUTED_ATTACK":
         "Permanent enforcement applied due to coordinated distributed activity.",
+    "REPUTATION_ESCALATION_WARNING":
+        "Escalated reputation based on attacks within a short window.",
+    "REPUTATION_ESCALATION_CRITICAL":
+        "Further attacks within a short window, permanent ban applied based on indicators of persistence attacks.",
+    "HIGH_SEVERITY_SINGLE_NODE":
+        "High severity activity observed on a single node; enforcement applied based on severity.",
+    "SINGLE_NODE_ONLY":
+        "Observed only on a single node, but severity and confidence justify enforcement across the fleet.",
+    "LOW_SCENARIO_VOLUME":
+        "Detected activity is a limited amount of firewall scenarios.",
+    "PRESERVED_EXISTING_DECISION":
+        "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome."
 }
 
 def explain_structured(decision: dict) -> dict:
@@ -67,6 +79,8 @@ def explain(decision: dict) -> str:
         if ev:
             lines.append(f"  - Nodes observed: {ev.get('node_count')}")
             lines.append(f"  - Severity: {ev.get('severity')}")
+            if ev.get("last_seen"):
+                lines.append(f"  - Last observed: {ev.get('last_seen')}")
         if scenarios:
             lines.append(f"  - Scenarios ({len(scenarios)}):")
             for s in scenarios:

@@ -19,7 +19,9 @@ class DecisionStore:
         return conn
 
     def _init_db(self):
+
         with self._connect() as conn:
+
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS decisions (
                     ip TEXT NOT NULL,
@@ -35,11 +37,54 @@ class DecisionStore:
                     scenarios TEXT,
                     PRIMARY KEY (ip, decision)
                 );
-		CREATE TABLE IF NOT EXISTS metadata (
-		    key TEXT PRIMARY KEY,
-                    value TEXT
-		);
+                CREATE TABLE IF NOT EXISTS reputation (
+                    ip TEXT PRIMARY KEY,
+                    strike_count INTEGER NOT NULL DEFAULT 0,
+                    last_seen TEXT NOT NULL
+                    );
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                            value TEXT
+		        );
             """)
+
+    def get_strikes(self, ip: str) -> int:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT strike_count FROM reputation WHERE ip = ?",
+                (ip,)
+            ).fetchone()
+            return row["strike_count"] if row else 0
+
+    def record_strike(self, ip: str, increment: bool = True) -> int:
+        now = datetime.now(timezone.utc).isoformat()
+
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT strike_count, last_seen FROM reputation WHERE ip = ?",
+                (ip,)
+            ).fetchone()
+
+            if not row:
+                conn.execute(
+                    "INSERT INTO reputation (ip, strike_count, last_seen) VALUES (?, ?, ?)",
+                    (ip, 1 if increment else 0, now)
+                )
+                return 1 if increment else 0
+
+            strike_count = row["strike_count"]
+            last_seen = datetime.fromisoformat(row["last_seen"])
+
+            # increment only if outside cooldown window
+            if increment and (datetime.now(timezone.utc) - last_seen).total_seconds() >= 300:
+                strike_count += 1
+
+            conn.execute(
+                "UPDATE reputation SET strike_count = ?, last_seen = ? WHERE ip = ?",
+                (strike_count, now, ip)
+            )
+
+            return strike_count
 
     def get_active_decision(self, ip: str) -> dict | None:
         now = datetime.now(timezone.utc).isoformat()
@@ -169,6 +214,30 @@ class DecisionStore:
                 json.dumps(decision["reason_codes"]),
                 json.dumps(decision.get("scenarios", [])),
             ))
+
+    def remove_lower_decisions(self, ip: str, new_decision: str) -> int:
+        from threat_engine.policies import DECISION_RANK
+
+        new_rank = DECISION_RANK[new_decision]
+
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT decision FROM decisions WHERE ip = ?",
+                (ip,)
+            ).fetchall()
+
+            deleted = 0
+            for row in rows:
+                existing_decision = row["decision"]
+                if DECISION_RANK.get(existing_decision, -1) < new_rank:
+                    conn.execute(
+                        "DELETE FROM decisions WHERE ip = ? AND decision = ?",
+                        (ip, existing_decision),
+                    )
+                    deleted += 1
+
+            return deleted
+
 
     def set_metadata(self, key: str, value: str) -> None:
         with self._connect() as conn:

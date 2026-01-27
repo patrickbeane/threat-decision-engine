@@ -1,12 +1,10 @@
 # threat_engine/engine.py
 
-from threat_engine.config import DECISION_TTLS
-from threat_engine.policies import DECISION_RANK
+from threat_engine.policies import DECISION_RANK, DECISION_TTLS
 from threat_engine.rules import RULES
 from threat_engine.reasons import Reason
 
-
-def decide(threat: dict) -> dict:
+def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dict:
     """
     Return a decision object:
     {
@@ -22,19 +20,17 @@ def decide(threat: dict) -> dict:
     confidence_label = threat["confidence"]["label"]
     severity = threat["severity"]["level"]
     node_count = threat.get("node_count", 1)
-    last_seen = threat.get("last_seen", "")
+
+    last_seen = threat.get("last_seen")
+    if last_seen and last_seen.endswith("Z"):
+        last_seen = last_seen.replace("Z", "+00:00")
+
     proposals: list[dict] = []
     reasons: list[str] = []
 
-    for rule in RULES:
-        result = rule(threat)
-        if not result:
-            continue
-        if confidence < result["confidence_required"]:
-            continue
-        proposals.append(result)
-
     final_decision = "WATCH"
+
+    prior_decision = existing_decision["decision"] if existing_decision else None
 
     if node_count >= 2:
         confidence += 0.15
@@ -46,6 +42,14 @@ def decide(threat: dict) -> dict:
 
     confidence = min(confidence, 1.0)
 
+    for rule in RULES:
+        result = rule(threat)
+        if not result:
+            continue
+        if confidence < result["confidence_required"]:
+            continue
+        proposals.append(result)
+
     if confidence >= 0.7 and severity == "critical" and node_count == 1:
         final_decision = "TEMP_BAN"
         reasons.append(Reason.HIGH_SEVERITY_SINGLE_NODE)
@@ -54,6 +58,17 @@ def decide(threat: dict) -> dict:
         if DECISION_RANK[p["decision"]] > DECISION_RANK[final_decision]:
             final_decision = p["decision"]
         reasons.append(p["reason"])
+
+    preserved = False
+
+    if existing_decision:
+        existing_decision_name = existing_decision["decision"]
+
+        if DECISION_RANK[existing_decision_name] >= DECISION_RANK[final_decision]:
+            final_decision = existing_decision_name
+            preserved = True
+            reasons.append(Reason.PRESERVED_EXISTING_DECISION)
+
 
     if final_decision == "WATCH" and node_count >= 2:
         final_decision = "TEMP_BAN"
@@ -73,6 +88,20 @@ def decide(threat: dict) -> dict:
         if not reasons:
             reasons.append(Reason.INSUFFICIENT_EVIDENCE)
 
+    escalate_strike_count = (
+        confidence >= 0.7 or
+        severity in ["high", "critical"] or
+        threat.get("new_evidence", False)
+    )
+
+    if escalate_strike_count and not preserved:
+        if strike_count >= 2 and final_decision == "TEMP_BAN":
+            final_decision = "PERM_BAN"
+            reasons.append(Reason.REPUTATION_ESCALATION_CRITICAL)
+
+        elif strike_count == 1 and final_decision == "WATCH":
+            final_decision = "TEMP_BAN"
+            reasons.append(Reason.REPUTATION_ESCALATION_WARNING)
 
     ttl = DECISION_TTLS.get(final_decision)
 
@@ -90,6 +119,7 @@ def decide(threat: dict) -> dict:
     return {
         "ip": threat["ip"],
         "decision": final_decision,
+        "strike_count": strike_count,
         "ttl_seconds": ttl,
         "confidence": {
             "score": round(confidence, 2),
@@ -103,5 +133,6 @@ def decide(threat: dict) -> dict:
                 {s.get("category", "unknown") for s in threat["scenarios"]}
             ),
             "severity": severity,
+            "last_seen": last_seen,
         },
     }

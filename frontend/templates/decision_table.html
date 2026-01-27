@@ -28,8 +28,8 @@
                 <td>{{ d.confidence.label }}</td>
 
                 <td>
-                    {% if d.ttl_seconds %}
-                        {{ d.ttl_seconds // 3600 }}h
+                    {% if d.ttl_display %}
+                        {{ (d.ttl_display) }}
                     {% else %}
                         ∞
                     {% endif %}
