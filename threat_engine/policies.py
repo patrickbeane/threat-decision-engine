@@ -18,6 +18,12 @@ CONFIDENCE_LABELS = {
     "high": (0.8, 1.0),
 }
 
+DECISION_TTLS = {
+    "TEMP_BAN": 24 * 60 * 60,       # 24 hours
+    "PERM_BAN": 14 * 24 * 60 * 60,  # 14 days
+    "WATCH": 7 * 24 * 60 * 60       # 7 days
+}
+
 DECISION_ORDER = [
     "IGNORE",
     "WATCH",

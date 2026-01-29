@@ -4,16 +4,55 @@
     <meta charset="utf-8">
     <title>Observability Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.colors.min.css">
     <style>
-      nav.pagination {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 0.5rem;
-      }
-      nav.pagination span {
-        opacity: 0.7;
-      }
+        nav.pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        nav.pagination span {
+            opacity: 0.7;
+        }
+
+        .badge {
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+            letter-spacing: 0.5px;
+        }
+
+        .severity-critical { 
+            background-color: var(--pico-color-red-600); 
+            color: #fff; 
+        }
+        .severity-high { 
+            background-color: var(--pico-color-orange-500); 
+            color: #fff; 
+        }
+        .severity-low { 
+            background-color: var(--pico-color-slate-700); 
+            color: var(--pico-color-slate-200); 
+        }
+
+        .confidence-high { 
+            border: 1px solid var(--pico-color-azure-500); 
+            color: var(--pico-color-azure-500); 
+        }
+        .confidence-medium { 
+            border: 1px solid var(--pico-color-slate-500);
+            color: var(--pico-color-slate-400); 
+        }
+        .confidence-low { 
+            border: 1px solid var(--pico-color-slate-700);
+            color: var(--pico-color-slate-500);           
+            font-weight: 400; 
+            opacity: 0.8;                                 
+        }
     </style>
 </head>
 <body>

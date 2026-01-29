@@ -17,6 +17,18 @@ REASON_EXPLANATIONS = {
         "Enforcement was escalated due to repeated activity across nodes.",
     "ESCALATED_DISTRIBUTED_ATTACK":
         "Permanent enforcement applied due to coordinated distributed activity.",
+    "REPUTATION_ESCALATION_WARNING":
+        "Escalated reputation based on attacks within a short window.",
+    "REPUTATION_ESCALATION_CRITICAL":
+        "Further attacks within a short window, permanent ban applied based on indicators of persistence attacks.",
+    "HIGH_SEVERITY_SINGLE_NODE":
+        "High severity activity observed on a single node; enforcement applied based on severity.",
+    "SINGLE_NODE_ONLY":
+        "Observed on a single node, indicating non-distributed activity at time of detection.",
+    "LOW_SCENARIO_VOLUME":
+        "Detected activity is a limited amount of firewall scenarios.",
+    "PRESERVED_EXISTING_DECISION":
+        "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome."
 }
 
 def explain_structured(decision: dict) -> dict:
@@ -36,6 +48,8 @@ def explain_structured(decision: dict) -> dict:
         "ip": decision["ip"],
         "confidence": decision["confidence"],
         "reasons": reasons,
+        "mitre_tactics": decision.get("mitre_tactics", []),
+        "mitre_techniques": decision.get("mitre_techniques", []),
         "evidence": decision.get("evidence"),
     }
 
@@ -60,6 +74,8 @@ def explain(decision: dict) -> str:
 
     ev = structured.get("evidence")
     scenarios = decision.get("scenarios", [])
+    mitre_tactics = decision.get("mitre_tactics", [])
+    mitre_techniques = decision.get("mitre_techniques", [])
 
     if ev or scenarios:
         lines.append("")
@@ -67,10 +83,18 @@ def explain(decision: dict) -> str:
         if ev:
             lines.append(f"  - Nodes observed: {ev.get('node_count')}")
             lines.append(f"  - Severity: {ev.get('severity')}")
+            if ev.get("last_seen"):
+                lines.append(f"  - Last observed: {ev.get('last_seen')}")
         if scenarios:
             lines.append(f"  - Scenarios ({len(scenarios)}):")
             for s in scenarios:
                 lines.append(f"      - {s['name']} / {s['category']} / base_score: {s['base_score']} / count: {s['count']} / last_seen: {s['last_seen']}")
+        if mitre_tactics:
+            lines.append(f"MITRE Tactics: {mitre_tactics}")
+            if mitre_techniques:
+                lines.append(f"MITRE Techniques: ")
+                for t in mitre_techniques:
+                    lines.append(f"  - {t}")
         if decision["decision"] in ("PERM_BAN", "TEMP_BAN"):
             ttl = decision.get("ttl_seconds")
             lines.append(f"   - TTL remaining: {format_duration(ttl)}")

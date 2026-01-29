@@ -1,8 +1,9 @@
 # cli/run.py
+
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pathlib
 import urllib.request
 
@@ -12,8 +13,8 @@ from threat_engine.explain import explain, explain_structured
 from threat_engine.errors import ThreatEngineError, EnforcementError
 from threat_engine.persistence import DecisionStore
 from threat_engine.explain_cached import explain_cached, explain_cached_structured
-from threat_engine.enforce import enforce_crowdsec, format_enforcement_preview
-from threat_engine.config import DECISION_TTLS
+from threat_engine.enforce import enforce_crowdsec, should_enforce, format_enforcement_preview
+from threat_engine.policies import DECISION_TTLS
 
 ###################
 ##### Helpers #####
@@ -110,21 +111,18 @@ def parse_args():
 ##### TTL Helpers #
 ###################
 
+
 def ensure_ttl(decision: dict):
     """Force TTLs from DECISION_TTLS for enforceable decisions."""
-    if decision["decision"] in DECISION_TTLS:
-        decision["ttl_seconds"] = DECISION_TTLS[decision["decision"]]
-    else:
+    ttl = DECISION_TTLS.get(decision["decision"])
+    if not ttl:
+        decision["expires_at"] = None
         decision.pop("ttl_seconds", None)
+        return
 
-def compute_ttl(decision: dict) -> int | None:
-    """
-    Return the TTL in seconds for a decision.
-    - WATCH / TEMP_BAN / PERM_BAN: use DECISION_TTLS
-    """
-    if decision["decision"] in DECISION_TTLS:
-        return DECISION_TTLS[decision["decision"]]
-    return None
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+    decision["expires_at"] = expires_at.isoformat()
+    decision["ttl_seconds"] = ttl
 
 ###############
 #### Main #####
@@ -142,8 +140,6 @@ def main():
             if not db_decision:
                 print(f"No active decision found for IP {args.ip}")
                 return
-
-            ensure_ttl(db_decision)
 
             if args.format == "json":
                 print(json.dumps(
@@ -165,7 +161,8 @@ def main():
 
         new_threats = []
         for t in threats:
-            if store.get_active_decision(t["ip"]):
+            existing = store.get_active_decision(t["ip"])
+            if existing and existing["decision"] == "PERM_BAN":
                 continue
             new_threats.append(t)
             if args.limit and len(new_threats) >= args.limit:
@@ -176,19 +173,45 @@ def main():
         decisions = []
 
         for t in threats:
-            if store.get_active_decision(t["ip"]):
+            existing = store.get_active_decision(t["ip"])
+
+            if existing and existing["decision"] == "PERM_BAN":
                 continue
 
-            d = decide(t)
-            ensure_ttl(d)
+            current_strikes = store.get_strikes(t["ip"])
+            predicted_strikes = current_strikes + 1
 
-            store.store_decision(d)
+            # first pass: predict post-strike decision to determine enforcement necessity
+            predicted = decide(t, strike_count=predicted_strikes, existing_decision=existing)
+            ensure_ttl(predicted)
 
-            decisions.append(d)
+            if existing and not should_enforce(existing, predicted):
+                continue
 
-        for d in decisions:
-            if d["decision"] in DECISION_TTLS:
-                d["ttl_seconds"] = DECISION_TTLS[d["decision"]]
+            decision = decide(
+                t,
+                strike_count=current_strikes + 1,
+                existing_decision=existing
+            )
+
+            if not existing or decision["decision"] != existing["decision"]:
+                strike_count = store.record_strike(t["ip"])
+            else:
+                strike_count = current_strikes
+                
+            decision["strike_count"] = strike_count
+
+            ensure_ttl(decision)
+
+            if decision["decision"] in ("TEMP_BAN", "PERM_BAN"):
+                store.remove_lower_decisions(
+                    decision["ip"],
+                    decision["decision"]
+                )
+
+            store.store_decision(decision)
+            decisions.append(decision)
+
 
         if args.mode == "explain":
             for d in decisions:

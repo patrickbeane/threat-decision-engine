@@ -24,12 +24,21 @@
                     {% endif %}
                 </td>
 
-                <td>{{ d.evidence.severity }}</td>
-                <td>{{ d.confidence.label }}</td>
+                <td>
+                    <span class="badge {% if d.evidence.severity == 'critical' %}severity-critical{% elif d.evidence.severity == 'high' %}severity-high{% else %}severity-low{% endif %}">
+                        {{ d.evidence.severity }}
+                    </span>
+                </td>
 
                 <td>
-                    {% if d.ttl_seconds %}
-                        {{ d.ttl_seconds // 3600 }}h
+                    <span class="badge {% if d.confidence.label == 'high' %}confidence-high{% elif d.confidence.label == 'medium' %}confidence-medium{% else %}confidence-low{% endif %}">
+                        {{ d.confidence.label }}
+                    </span>
+                </td>
+
+                <td>
+                    {% if d.ttl_display %}
+                        {{ (d.ttl_display) }}
                     {% else %}
                         ∞
                     {% endif %}

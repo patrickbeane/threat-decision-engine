@@ -12,6 +12,10 @@ REASON_EXPLANATIONS = {
         "Multiple stages of an attack chain were observed within a short time window.",
     Reason.LOW_CONFIDENCE:
         "Signals were observed, but confidence was below the automation threshold.",
+    Reason.SINGLE_NODE_ONLY:
+        "Threat activity was observed from a single node only.",
+    Reason.HIGH_SEVERITY_SINGLE_NODE:
+        "High severity exploit activity was observed, but only from a single node.",
     Reason.MULTI_NODE_OBSERVATION:
         "Threat activity was observed independently on multiple nodes.",
     Reason.ESCALATED_MULTI_NODE:
@@ -22,12 +26,21 @@ REASON_EXPLANATIONS = {
         "High severity exploit activity detected.",
     Reason.REPEATED_LOW_CONFIDENCE_ACTIVITY:
         "Repeated low-confidence activity observed.",
+    Reason.REPUTATION_ESCALATION_WARNING:
+        "Escalated reputation based on attacks within a short window.",
+    Reason.REPUTATION_ESCALATION_CRITICAL:
+        "Further attacks within a short window, permanent ban applied based on indicators of persistence attacks.",
+    Reason.PRESERVED_EXISTING_DECISION:
+        "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome.",
 }
 
 def explain_cached(decision: dict) -> str:
     lines = []
 
     lines.append(f"[{decision['decision']}] {decision['ip']} (confidence: {decision['confidence']['label']})")
+
+    mitre_tactics = decision.get("mitre_tactics", [])
+    mitre_techniques = decision.get("mitre_techniques", [])
 
     for reason in decision.get("reason_codes", []):
         lines.append(f"  - {REASON_EXPLANATIONS.get(reason, reason)}")
@@ -37,6 +50,14 @@ def explain_cached(decision: dict) -> str:
         lines.append("\nEvidence (cached decision):")
         lines.append(f"  - Nodes observed: {ev.get('node_count')}")
         lines.append(f"  - Severity: {ev.get('severity')}")
+        if mitre_tactics:
+            lines.append(f"MITRE Tactics: {mitre_tactics}")
+            if mitre_techniques:
+                lines.append(f"MITRE Techniques: ")
+                for t in mitre_techniques:
+                    lines.append(f"  - {t}")
+        if ev.get("last_seen"):
+            lines.append(f"  - Last observed: {ev.get('last_seen')}")
 
         if decision["decision"] in ("PERM_BAN", "TEMP_BAN"):
             ttl = decision.get("ttl_seconds")
@@ -57,9 +78,12 @@ def explain_cached_structured(decision: dict) -> dict:
         "decision": decision["decision"],
         "confidence": decision["confidence"],
         "severity": decision["evidence"]["severity"],
+        "strike_count": decision["strike_count"],
         "node_count": decision["evidence"]["node_count"],
         "reason_codes": decision["reason_codes"],
         "scenarios": decision.get("scenarios", []),
+        "mitre_tactics": decision.get("mitre_tactics", []),
+        "mitre_techniques": decision.get("mitre_techniques", []),
         "ttl_seconds": decision.get("ttl_seconds"),
         "first_seen": decision.get("first_seen"),
         "last_seen": decision.get("last_seen"),

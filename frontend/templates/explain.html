@@ -19,10 +19,32 @@
 
         <h3>Reasons</h3>
         <ul>
-            {% for reason in decision.reason_codes %}
-            <li>{{ reason }}</li>
+            {% for reason in decision.reasons %}
+            <li>{{ reason.description }}</li>
             {% endfor %}
         </ul>
+
+        {% if decision.mitre_tactics_filtered | length > 0 or decision.mitre_techniques_filtered | length > 0 %}
+        <h3>MITRE ATT&CK Mappings</h3>
+        <ul>
+            {% if decision.mitre_tactics_filtered | length > 0 %}
+            <li><strong>Tactics:</strong>
+                {% for tactic in decision.mitre_tactics_filtered %}
+                {{ tactic }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </li>
+            {% endif %}
+            {% if decision.mitre_techniques_filtered | length > 0 %}
+            <li><strong>Techniques:</strong>
+                {% for t in decision.mitre_techniques_filtered %}
+                <a href="https://attack.mitre.org/techniques/{{ t }}/" target="_blank" rel="noopener">{{ t }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </li>
+            {% endif %}
+        </ul>
+        {% else %}
+        <p><em>No MITRE ATT&CK mappings available for this decision.</em></p>
+        {% endif %}
 
         <h3>Evidence</h3>
         <ul>
@@ -30,8 +52,8 @@
             <li>Severity: {{ decision.evidence.severity }}</li>
             <li>
                 TTL remaining:
-                {% if decision.ttl_seconds %}
-                    {{ (decision.ttl_seconds // 3600) }}h
+                {% if decision.ttl_display %}
+                    {{ (decision.ttl_display) }}
                 {% else %}
                     ∞
                 {% endif %}
