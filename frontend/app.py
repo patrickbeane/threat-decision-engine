@@ -119,13 +119,13 @@ def dashboard():
 def explain(ip):
     decision = ds.get_active_decision(ip)
 
+    if not decision:
+        return "No active decision for this IP", 404
+
     explained = explain_structured(decision)
     explained["mitre_tactics_filtered"] = [t for t in decision.get("mitre_tactics", []) if t != "Unknown"]
     explained["mitre_techniques_filtered"] = decision.get("mitre_techniques", [])
     explained["ttl_display"] = human_ttl(decision.get("ttl_seconds"), precise=True)
-
-    if not decision:
-        return "No active decision for this IP", 404
 
     return render_template("explain.html", decision=explained)
 
