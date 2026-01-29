@@ -74,7 +74,6 @@ def paginate(items, page, per_page=10):
 @app.route("/")
 def dashboard():
     decisions = ds.get_active_decisions(limit=500)
-
     for d in decisions:
         d["ttl_display"] = human_ttl(d["ttl_seconds"])
 
@@ -121,6 +120,8 @@ def explain(ip):
     decision = ds.get_active_decision(ip)
 
     explained = explain_structured(decision)
+    explained["mitre_tactics_filtered"] = [t for t in decision.get("mitre_tactics", []) if t != "Unknown"]
+    explained["mitre_techniques_filtered"] = decision.get("mitre_techniques", [])
     explained["ttl_display"] = human_ttl(decision.get("ttl_seconds"), precise=True)
 
     if not decision:

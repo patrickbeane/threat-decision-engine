@@ -20,7 +20,6 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
     confidence_label = threat["confidence"]["label"]
     severity = threat["severity"]["level"]
     node_count = threat.get("node_count", 1)
-
     last_seen = threat.get("last_seen")
     if last_seen and last_seen.endswith("Z"):
         last_seen = last_seen.replace("Z", "+00:00")

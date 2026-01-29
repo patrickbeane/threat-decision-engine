@@ -32,6 +32,8 @@ class DecisionStore:
                     node_count INTEGER NOT NULL,
                     first_seen TEXT NOT NULL,
                     last_seen TEXT NOT NULL,
+                    mitre_tactics TEXT,
+                    mitre_techniques TEXT,
                     expires_at TEXT,
                     reason_codes TEXT NOT NULL,
                     scenarios TEXT,
@@ -121,6 +123,8 @@ class DecisionStore:
                 "severity": row["severity"],
             },
             "scenarios": json.loads(row["scenarios"]) if row["scenarios"] else [],
+            "mitre_tactics": json.loads(row["mitre_tactics"]) if row["mitre_tactics"] else [],
+            "mitre_techniques": json.loads(row["mitre_techniques"]) if row["mitre_techniques"] else [],
             "first_seen": row["first_seen"],
             "last_seen": row["last_seen"],
             "source": "sqlite",
@@ -165,6 +169,8 @@ class DecisionStore:
                     "severity": row["severity"],
                 },
                 "scenarios": json.loads(row["scenarios"]) if row["scenarios"] else [],
+                "mitre_tactics": json.loads(row["mitre_tactics"]) if row["mitre_tactics"] else [],
+                "mitre_techniques": json.loads(row["mitre_techniques"]) if row["mitre_techniques"] else [],
                 "first_seen": row["first_seen"],
                 "last_seen": row["last_seen"],
                 "source": "sqlite",
@@ -182,6 +188,11 @@ class DecisionStore:
             if ttl else None
         )
 
+        severity_data = decision["evidence"].get("severity", {})  # safe get
+
+        mitre_tactics = json.dumps(severity_data.get("mitre_tactics", [])) or None
+        mitre_techniques = json.dumps(severity_data.get("mitre_techniques", [])) or None
+    
         with self._connect() as conn:
             conn.execute("""
                 INSERT INTO decisions (
@@ -189,15 +200,18 @@ class DecisionStore:
                     confidence_score, confidence_label,
                     severity, node_count,
                     first_seen, last_seen,
+                    mitre_tactics, mitre_techniques,
                     expires_at, reason_codes,
                     scenarios
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(ip, decision) DO UPDATE SET
                     confidence_score = excluded.confidence_score,
                     confidence_label = excluded.confidence_label,
                     severity = excluded.severity,
                     node_count = excluded.node_count,
                     last_seen = excluded.last_seen,
+                    mitre_tactics = excluded.mitre_tactics,
+                    mitre_techniques = excluded.mitre_techniques,
                     expires_at = excluded.expires_at,
                     reason_codes = excluded.reason_codes,
                     scenarios = excluded.scenarios
@@ -211,6 +225,8 @@ class DecisionStore:
                 now,   # first_seen (only used on insert)
                 now,   # last_seen (always updated)
                 expires_at,
+                mitre_tactics or None,
+                mitre_techniques or None,
                 json.dumps(decision["reason_codes"]),
                 json.dumps(decision.get("scenarios", [])),
             ))

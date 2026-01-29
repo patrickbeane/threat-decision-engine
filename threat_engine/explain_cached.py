@@ -39,6 +39,9 @@ def explain_cached(decision: dict) -> str:
 
     lines.append(f"[{decision['decision']}] {decision['ip']} (confidence: {decision['confidence']['label']})")
 
+    mitre_tactics = decision.get("mitre_tactics", [])
+    mitre_techniques = decision.get("mitre_techniques", [])
+
     for reason in decision.get("reason_codes", []):
         lines.append(f"  - {REASON_EXPLANATIONS.get(reason, reason)}")
 
@@ -47,6 +50,12 @@ def explain_cached(decision: dict) -> str:
         lines.append("\nEvidence (cached decision):")
         lines.append(f"  - Nodes observed: {ev.get('node_count')}")
         lines.append(f"  - Severity: {ev.get('severity')}")
+        if mitre_tactics:
+            lines.append(f"MITRE Tactics: {mitre_tactics}")
+            if mitre_techniques:
+                lines.append(f"MITRE Techniques: ")
+                for t in mitre_techniques:
+                    lines.append(f"  - {t}")
         if ev.get("last_seen"):
             lines.append(f"  - Last observed: {ev.get('last_seen')}")
 
@@ -73,6 +82,8 @@ def explain_cached_structured(decision: dict) -> dict:
         "node_count": decision["evidence"]["node_count"],
         "reason_codes": decision["reason_codes"],
         "scenarios": decision.get("scenarios", []),
+        "mitre_tactics": decision.get("mitre_tactics", []),
+        "mitre_techniques": decision.get("mitre_techniques", []),
         "ttl_seconds": decision.get("ttl_seconds"),
         "first_seen": decision.get("first_seen"),
         "last_seen": decision.get("last_seen"),

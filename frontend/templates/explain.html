@@ -24,6 +24,28 @@
             {% endfor %}
         </ul>
 
+        {% if decision.mitre_tactics_filtered | length > 0 or decision.mitre_techniques_filtered | length > 0 %}
+        <h3>MITRE ATT&CK Mappings</h3>
+        <ul>
+            {% if decision.mitre_tactics_filtered | length > 0 %}
+            <li><strong>Tactics:</strong>
+                {% for tactic in decision.mitre_tactics_filtered %}
+                {{ tactic }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </li>
+            {% endif %}
+            {% if decision.mitre_techniques_filtered | length > 0 %}
+            <li><strong>Techniques:</strong>
+                {% for t in decision.mitre_techniques_filtered %}
+                <a href="https://attack.mitre.org/techniques/{{ t }}/" target="_blank" rel="noopener">{{ t }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </li>
+            {% endif %}
+        </ul>
+        {% else %}
+        <p><em>No MITRE ATT&CK mappings available for this decision.</em></p>
+        {% endif %}
+
         <h3>Evidence</h3>
         <ul>
             <li>Nodes observed: {{ decision.evidence.node_count }}</li>

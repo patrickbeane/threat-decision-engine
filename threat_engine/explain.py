@@ -24,7 +24,7 @@ REASON_EXPLANATIONS = {
     "HIGH_SEVERITY_SINGLE_NODE":
         "High severity activity observed on a single node; enforcement applied based on severity.",
     "SINGLE_NODE_ONLY":
-        "Observed only on a single node, but severity and confidence justify enforcement across the fleet.",
+        "Observed on a single node, indicating non-distributed activity at time of detection.",
     "LOW_SCENARIO_VOLUME":
         "Detected activity is a limited amount of firewall scenarios.",
     "PRESERVED_EXISTING_DECISION":
@@ -48,6 +48,8 @@ def explain_structured(decision: dict) -> dict:
         "ip": decision["ip"],
         "confidence": decision["confidence"],
         "reasons": reasons,
+        "mitre_tactics": decision.get("mitre_tactics", []),
+        "mitre_techniques": decision.get("mitre_techniques", []),
         "evidence": decision.get("evidence"),
     }
 
@@ -72,6 +74,8 @@ def explain(decision: dict) -> str:
 
     ev = structured.get("evidence")
     scenarios = decision.get("scenarios", [])
+    mitre_tactics = decision.get("mitre_tactics", [])
+    mitre_techniques = decision.get("mitre_techniques", [])
 
     if ev or scenarios:
         lines.append("")
@@ -85,6 +89,12 @@ def explain(decision: dict) -> str:
             lines.append(f"  - Scenarios ({len(scenarios)}):")
             for s in scenarios:
                 lines.append(f"      - {s['name']} / {s['category']} / base_score: {s['base_score']} / count: {s['count']} / last_seen: {s['last_seen']}")
+        if mitre_tactics:
+            lines.append(f"MITRE Tactics: {mitre_tactics}")
+            if mitre_techniques:
+                lines.append(f"MITRE Techniques: ")
+                for t in mitre_techniques:
+                    lines.append(f"  - {t}")
         if decision["decision"] in ("PERM_BAN", "TEMP_BAN"):
             ttl = decision.get("ttl_seconds")
             lines.append(f"   - TTL remaining: {format_duration(ttl)}")
