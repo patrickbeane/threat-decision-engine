@@ -108,12 +108,11 @@ def parse_args():
     return parser.parse_args()
 
 ###################
-### TTL Helpers ###
+##### TTL Helpers #
 ###################
 
 
 def ensure_ttl(decision: dict):
-    """Force TTLs from DECISION_TTLS for enforceable decisions."""
     ttl = DECISION_TTLS.get(decision["decision"])
     if not ttl:
         decision["expires_at"] = None
@@ -198,7 +197,7 @@ def main():
                 strike_count = store.record_strike(t["ip"])
             else:
                 strike_count = current_strikes
-
+                
             decision["strike_count"] = strike_count
 
             ensure_ttl(decision)

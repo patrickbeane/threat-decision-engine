@@ -74,6 +74,7 @@ def paginate(items, page, per_page=10):
 @app.route("/")
 def dashboard():
     decisions = ds.get_active_decisions(limit=500)
+
     for d in decisions:
         d["ttl_display"] = human_ttl(d["ttl_seconds"])
 
@@ -123,15 +124,33 @@ def explain(ip):
         return "No active decision for this IP", 404
 
     explained = explain_structured(decision)
-    explained["mitre_tactics_filtered"] = [t for t in decision.get("mitre_tactics", []) if t != "Unknown"]
-    explained["mitre_techniques_filtered"] = decision.get("mitre_techniques", [])
+
+    explained["mitre_tactics"] = [
+        t for t in decision.get("mitre_tactics", []) 
+        if t and t != "Unknown"
+    ]
+
+    explained["mitre_techniques"] = [
+        t for t in decision.get("mitre_techniques", [])
+        if t
+    ]
+
     explained["ttl_display"] = human_ttl(decision.get("ttl_seconds"), precise=True)
 
     return render_template("explain.html", decision=explained)
 
 @app.route("/api/decisions")
 def api_dashboard():
-    return jsonify(ds.get_active_decisions())
+    decisions = ds.get_active_decisions()
+    return jsonify(decisions)
+
+@app.route("/api/explain/<ip>")
+def api_explain(ip):
+    decision = ds.get_active_decision(ip)
+    if not decision:
+        return jsonify({"error": "No active decision for this IP"}), 404
+
+    return jsonify(decision)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

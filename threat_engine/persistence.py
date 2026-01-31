@@ -140,11 +140,13 @@ class DecisionStore:
             ORDER BY last_seen DESC
         """
 
-        if limit:
-            query += f" LIMIT {limit}"
+        params: tuple = (now,)
+        if limit is not None:
+            query += " LIMIT ?"
+            params += (limit,)
 
         with self._connect() as conn:
-            rows = conn.execute(query, (now,)).fetchall()
+            rows = conn.execute(query, params).fetchall()
 
         results = []
         for row in rows:
@@ -188,10 +190,17 @@ class DecisionStore:
             if ttl else None
         )
 
-        severity_data = decision["evidence"].get("severity", {})  # safe get
+        raw_severity = decision.get("evidence", {})
 
-        mitre_tactics = json.dumps(severity_data.get("mitre_tactics", [])) or None
-        mitre_techniques = json.dumps(severity_data.get("mitre_techniques", [])) or None
+        tactics = [
+            t for t in raw_severity.get("mitre_tactics", [])
+            if t and t != "Unknown"
+        ]
+
+        techniques = raw_severity.get("mitre_techniques", [])
+
+        mitre_tactics = json.dumps(sorted(set(tactics)))
+        mitre_techniques = json.dumps(sorted(set(techniques)))
     
         with self._connect() as conn:
             conn.execute("""
@@ -205,13 +214,11 @@ class DecisionStore:
                     scenarios
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(ip, decision) DO UPDATE SET
-                    confidence_score = excluded.confidence_score,
-                    confidence_label = excluded.confidence_label,
                     severity = excluded.severity,
                     node_count = excluded.node_count,
                     last_seen = excluded.last_seen,
-                    mitre_tactics = excluded.mitre_tactics,
-                    mitre_techniques = excluded.mitre_techniques,
+                    mitre_tactics = COALESCE(excluded.mitre_tactics, decisions.mitre_tactics),
+                    mitre_techniques = COALESCE(excluded.mitre_techniques, decisions.mitre_techniques),
                     expires_at = excluded.expires_at,
                     reason_codes = excluded.reason_codes,
                     scenarios = excluded.scenarios
@@ -224,9 +231,9 @@ class DecisionStore:
                 decision["evidence"]["node_count"],
                 now,   # first_seen (only used on insert)
                 now,   # last_seen (always updated)
-                expires_at,
                 mitre_tactics or None,
                 mitre_techniques or None,
+                expires_at,
                 json.dumps(decision["reason_codes"]),
                 json.dumps(decision.get("scenarios", [])),
             ))

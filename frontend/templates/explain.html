@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <title>Explain {{ decision.ip }}</title>
     <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.colors.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
 
@@ -14,7 +16,15 @@
     <article>
         <header>
             <strong>{{ decision.decision }}</strong>
-            <span>Confidence: {{ decision.confidence.label }}</span>
+            {% set conf_class = {
+                'high': 'confidence-high',
+                'medium': 'confidence-medium',
+                'low': 'confidence-low'
+            }[decision.confidence.label] %}
+
+            <span class="badge {{ conf_class }}">
+                {{ decision.confidence.label.upper() }}
+            </span>
         </header>
 
         <h3>Reasons</h3>
@@ -24,19 +34,19 @@
             {% endfor %}
         </ul>
 
-        {% if decision.mitre_tactics_filtered | length > 0 or decision.mitre_techniques_filtered | length > 0 %}
+        {% if decision.mitre_tactics | length > 0 or decision.mitre_techniques | length > 0 %}
         <h3>MITRE ATT&CK Mappings</h3>
         <ul>
-            {% if decision.mitre_tactics_filtered | length > 0 %}
+            {% if decision.mitre_tactics | length > 0 %}
             <li><strong>Tactics:</strong>
-                {% for tactic in decision.mitre_tactics_filtered %}
+                {% for tactic in decision.mitre_tactics %}
                 {{ tactic }}{% if not loop.last %}, {% endif %}
                 {% endfor %}
             </li>
             {% endif %}
-            {% if decision.mitre_techniques_filtered | length > 0 %}
+            {% if decision.mitre_techniques | length > 0 %}
             <li><strong>Techniques:</strong>
-                {% for t in decision.mitre_techniques_filtered %}
+                {% for t in decision.mitre_techniques %}
                 <a href="https://attack.mitre.org/techniques/{{ t }}/" target="_blank" rel="noopener">{{ t }}</a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
             </li>
@@ -49,7 +59,17 @@
         <h3>Evidence</h3>
         <ul>
             <li>Nodes observed: {{ decision.evidence.node_count }}</li>
-            <li>Severity: {{ decision.evidence.severity }}</li>
+            <li>
+                Severity:
+                <span class="badge 
+                    {% if decision.evidence.severity == 'critical' %}severity-critical
+                    {% elif decision.evidence.severity == 'high' %}severity-high
+                    {% else %}severity-low
+                    {% endif %}
+                ">
+                    {{ decision.evidence.severity.upper() }}
+                </span>
+            </li>
             <li>
                 TTL remaining:
                 {% if decision.ttl_display %}

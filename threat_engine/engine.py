@@ -18,8 +18,19 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
     """
     confidence = threat["confidence"]["score"]
     confidence_label = threat["confidence"]["label"]
-    severity = threat["severity"]["level"]
+
+    severity = threat.get("severity", {}) or {}
+    severity_level = threat["severity"]["level"]
+
+    mitre_tactics = [t for t in severity.get("mitre_tactics", []) if t and t != "Unknown"]
+    mitre_techniques = severity.get("mitre_techniques", [])
+    
+    scenarios = threat.get("scenarios", [])
+    scenario_names = [s["name"] for s in scenarios] if scenarios else None
+    scenario_count = len(threat["scenarios"])
+
     node_count = threat.get("node_count", 1)
+    
     last_seen = threat.get("last_seen")
     if last_seen and last_seen.endswith("Z"):
         last_seen = last_seen.replace("Z", "+00:00")
@@ -49,7 +60,7 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
             continue
         proposals.append(result)
 
-    if confidence >= 0.7 and severity == "critical" and node_count == 1:
+    if confidence >= 0.7 and severity_level == "critical" and node_count == 1:
         final_decision = "TEMP_BAN"
         reasons.append(Reason.HIGH_SEVERITY_SINGLE_NODE)
 
@@ -81,7 +92,7 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
         if node_count == 1:
             reasons.append(Reason.SINGLE_NODE_ONLY)
 
-        if len(threat["scenarios"]) == 1:
+        if scenario_count == 1:
             reasons.append(Reason.LOW_SCENARIO_VOLUME)
 
         if not reasons:
@@ -89,7 +100,7 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
 
     escalate_strike_count = (
         confidence >= 0.7 or
-        severity in ["high", "critical"] or
+        severity_level in ["high", "critical"] or
         threat.get("new_evidence", False)
     )
 
@@ -125,13 +136,16 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
             "label": confidence_label,
         },
         "reason_codes": sorted(set(reasons)),
+        "scenarios": scenario_names,
         "evidence": {
-            "scenario_count": len(threat["scenarios"]),
+            "scenario_count": scenario_count,
             "node_count": node_count,
             "categories": sorted(
                 {s.get("category", "unknown") for s in threat["scenarios"]}
             ),
-            "severity": severity,
+            "severity": severity_level,
+            "mitre_tactics": mitre_tactics,
+            "mitre_techniques": mitre_techniques,
             "last_seen": last_seen,
         },
     }
