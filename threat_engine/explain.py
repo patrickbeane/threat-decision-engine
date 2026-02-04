@@ -1,6 +1,9 @@
 # threat_engine/explain.py
 
 from threat_engine.utils import format_duration
+from threat_engine.validator import validate_and_sort
+from threat_engine.engine import decide
+from threat_engine.helpers import load_input, ensure_ttl
 
 REASON_EXPLANATIONS = {
     "POST_EXPLOITATION_INDICATORS":
@@ -30,6 +33,19 @@ REASON_EXPLANATIONS = {
     "PRESERVED_EXISTING_DECISION":
         "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome."
 }
+
+def explain_api_input(api_input, as_json=False):
+    data = load_input(api_input)
+    threats = validate_and_sort(data["threats"])
+
+    for t in threats:
+        decision = decide(t, strike_count=1, existing_decision=None)
+        ensure_ttl(decision)
+
+        if as_json:
+            print(json.dumps(explain_structured(decision), indent=2))
+        else:
+            print(explain(decision))
 
 def explain_structured(decision: dict) -> dict:
     """Return a structured explanation object."""
@@ -88,7 +104,14 @@ def explain(decision: dict) -> str:
         if scenarios:
             lines.append(f"  - Scenarios ({len(scenarios)}):")
             for s in scenarios:
-                lines.append(f"      - {s['name']} / {s['category']} / base_score: {s['base_score']} / count: {s['count']} / last_seen: {s['last_seen']}")
+                if isinstance(s, dict):
+                    lines.append(
+                        f"      - {s.get('name')} / {s.get('category')} / "
+                        f"base_score: {s.get('base_score')} / count: {s.get('count')} / "
+                        f"last_seen: {s.get('last_seen')}"
+                    )
+                else:
+                    lines.append(f"      - {s}")
         if mitre_tactics:
             lines.append(f"MITRE Tactics: {mitre_tactics}")
             if mitre_techniques:

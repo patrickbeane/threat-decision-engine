@@ -9,38 +9,17 @@ import urllib.request
 
 from threat_engine.validator import validate_and_sort
 from threat_engine.engine import decide
-from threat_engine.explain import explain, explain_structured
+from threat_engine.explain import explain, explain_structured, explain_api_input
 from threat_engine.errors import ThreatEngineError, EnforcementError
 from threat_engine.persistence import DecisionStore
 from threat_engine.explain_cached import explain_cached, explain_cached_structured
 from threat_engine.enforce import enforce_crowdsec, should_enforce, format_enforcement_preview
 from threat_engine.policies import DECISION_TTLS
+from threat_engine.helpers import load_input, write_output, ensure_ttl
 
 ###################
 ##### Helpers #####
 ###################
-
-def load_input(path_or_url: str) -> dict:
-    if path_or_url.startswith(("http://", "https://")):
-        with urllib.request.urlopen(path_or_url) as resp:
-            return json.load(resp)
-
-    path = pathlib.Path(path_or_url)
-    if not path.exists():
-        raise ThreatEngineError(f"Input not found: {path}")
-
-    with path.open() as f:
-        return json.load(f)
-
-def write_output(decisions: list, output: str | None):
-    if not output:
-        return
-
-    try:
-        with open(output, "w") as f:
-            json.dump(decisions, f, indent=2)
-    except Exception as e:
-        raise ThreatEngineError(f"Failed to write output: {e}")
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -106,22 +85,6 @@ def parse_args():
     )
 
     return parser.parse_args()
-
-###################
-##### TTL Helpers #
-###################
-
-
-def ensure_ttl(decision: dict):
-    ttl = DECISION_TTLS.get(decision["decision"])
-    if not ttl:
-        decision["expires_at"] = None
-        decision.pop("ttl_seconds", None)
-        return
-
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
-    decision["expires_at"] = expires_at.isoformat()
-    decision["ttl_seconds"] = ttl
 
 ###############
 #### Main #####
@@ -211,13 +174,11 @@ def main():
             store.store_decision(decision)
             decisions.append(decision)
 
-
-        if args.mode == "explain":
-            for d in decisions:
-                if args.format == "json":
-                    print(json.dumps(explain_structured(d), indent=2))
-                else:
-                    print(explain(d))
+        if args.mode == "explain" and args.input:
+            explain_api_input(
+                args.input,
+                as_json=(args.format == "json")
+            )
             return
 
         if args.mode == "enforce":
@@ -226,6 +187,7 @@ def main():
                 raise EnforcementError(
                     "Refusing to enforce decisions without --yes confirmation"
                 )
+                return
 
             to_enforce = [
                 d for d in decisions
