@@ -67,7 +67,11 @@ def explain_cached(decision: dict) -> str:
     if scenarios:
         lines.append("\nScenarios observed:")
         for s in scenarios:
-            lines.append(f"  - {s.get('name')} (category: {s.get('category')}, base_score: {s.get('base_score')})")
+            if isinstance(s, dict):
+                lines.append(f"  - {s.get('name')} (category: {s.get('category')}, base_score: {s.get('base_score')})")
+            else:
+                lines.append(f"  - {s}")
+
 
     return "\n".join(lines)
 
