@@ -1,5 +1,7 @@
 # threat_engine/explain.py
 
+import json
+
 from threat_engine.utils import format_duration
 from threat_engine.validator import validate_and_sort
 from threat_engine.engine import decide

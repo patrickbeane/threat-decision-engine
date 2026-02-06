@@ -1,14 +1,16 @@
-# cli/helpers.py
+# threat_engine/helpers.py
 
 import json
+import pathlib
 import urllib
 from datetime import datetime, timezone, timedelta
 
 from threat_engine.policies import DECISION_TTLS
+from threat_engine.errors import ThreatEngineError
 
 def load_input(path_or_url: str) -> dict:
     if path_or_url.startswith(("http://", "https://")):
-        with urllib.request.urlopen(path_or_url) as resp:
+        with urllib.request.urlopen(path_or_url, timeout=10) as resp:
             return json.load(resp)
 
     path = pathlib.Path(path_or_url)

@@ -20,14 +20,14 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
     confidence_label = threat["confidence"]["label"]
 
     severity = threat.get("severity", {}) or {}
-    severity_level = threat["severity"]["level"]
+    severity_level = severity.get("level", "unknown")
 
     mitre_tactics = [t for t in severity.get("mitre_tactics", []) if t and t != "Unknown"]
     mitre_techniques = severity.get("mitre_techniques", [])
     
-    scenarios = threat.get("scenarios", [])
-    scenario_names = [s["name"] for s in scenarios] if scenarios else None
-    scenario_count = len(threat["scenarios"])
+    scenarios = threat.get("scenarios", []) or []
+    scenario_names = [s.get("name") for s in scenarios if isinstance(s, dict)] if scenarios else None
+    scenario_count = len(scenarios)
 
     node_count = threat.get("node_count", 1)
     
@@ -141,7 +141,7 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
             "scenario_count": scenario_count,
             "node_count": node_count,
             "categories": sorted(
-                {s.get("category", "unknown") for s in threat["scenarios"]}
+                {s.get("category", "unknown") for s in scenarios if isinstance(s, dict)}
             ),
             "severity": severity_level,
             "mitre_tactics": mitre_tactics,

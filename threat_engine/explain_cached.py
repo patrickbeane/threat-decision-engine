@@ -82,7 +82,7 @@ def explain_cached_structured(decision: dict) -> dict:
         "decision": decision["decision"],
         "confidence": decision["confidence"],
         "severity": decision["evidence"]["severity"],
-        "strike_count": decision["strike_count"],
+        "strike_count": decision.get("strike_count", 0),
         "node_count": decision["evidence"]["node_count"],
         "reason_codes": decision["reason_codes"],
         "scenarios": decision.get("scenarios", []),
