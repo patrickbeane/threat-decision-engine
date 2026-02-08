@@ -37,7 +37,8 @@ REASON_EXPLANATIONS = {
 def explain_cached(decision: dict) -> str:
     lines = []
 
-    lines.append(f"[{decision['decision']}] {decision['ip']} (confidence: {decision['confidence']['label']})")
+    ttl = decision.get("ttl_seconds")
+    lines.append(f"[{decision['decision']}] {decision['ip']} (confidence: {decision['confidence']['label']}) - TTL remaining: {format_duration(ttl)}")
 
     mitre_tactics = decision.get("mitre_tactics", [])
     mitre_techniques = decision.get("mitre_techniques", [])
@@ -51,17 +52,13 @@ def explain_cached(decision: dict) -> str:
         lines.append(f"  - Nodes observed: {ev.get('node_count')}")
         lines.append(f"  - Severity: {ev.get('severity')}")
         if mitre_tactics:
-            lines.append(f"MITRE Tactics: {mitre_tactics}")
+            lines.append(f"\nMITRE Tactics: {mitre_tactics}")
             if mitre_techniques:
                 lines.append(f"MITRE Techniques: ")
                 for t in mitre_techniques:
                     lines.append(f"  - {t}")
         if ev.get("last_seen"):
             lines.append(f"  - Last observed: {ev.get('last_seen')}")
-
-        if decision["decision"] in ("PERM_BAN", "TEMP_BAN"):
-            ttl = decision.get("ttl_seconds")
-            lines.append(f"  - TTL remaining: {format_duration(ttl)}")
 
     scenarios = decision.get("scenarios", [])
     if scenarios:
