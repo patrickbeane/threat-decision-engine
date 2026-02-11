@@ -1,6 +1,7 @@
 # threat_engine/validator.py
 
 from datetime import datetime
+import ipaddress
 from typing import List, Tuple
 
 def validate_and_sort(threats: List[dict]) -> List[dict]:
@@ -8,7 +9,7 @@ def validate_and_sort(threats: List[dict]) -> List[dict]:
     Validate, normalize, and order threats.
 
     Guarantees:
-      - Returned threats always have:
+      - Returned threats always have valid normalized:
         - ip
         - >=1 scenario
         - numeric confidence [0.0–1.0]
@@ -20,9 +21,11 @@ def validate_and_sort(threats: List[dict]) -> List[dict]:
 
     for t in threats:
         try:
-            ip = t.get("ip")
-            if not ip:
+            ip_raw = t.get("ip")
+            if not isinstance(ip_raw, str) or not ip_raw.strip():
                 continue
+            ip = str(ipaddress.ip_address(ip_raw.strip()))
+            t["ip"] = ip
 
             # Parse timestamp safely
             try:
