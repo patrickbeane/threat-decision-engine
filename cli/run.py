@@ -94,6 +94,13 @@ def main():
     args = parse_args()
 
     try:
+        if args.mode == "explain" and args.input:
+            explain_api_input(
+                args.input,
+                as_json=(args.format == "json")
+            )
+            return
+
         store = DecisionStore()
 
         if args.mode == "explain" and args.ip:
@@ -173,13 +180,6 @@ def main():
 
             store.store_decision(decision)
             decisions.append(decision)
-
-        if args.mode == "explain" and args.input:
-            explain_api_input(
-                args.input,
-                as_json=(args.format == "json")
-            )
-            return
 
         if args.mode == "enforce":
             if not args.yes:

@@ -2,7 +2,7 @@
 
 import json
 import pathlib
-import urllib
+import urllib.request
 from datetime import datetime, timezone, timedelta
 
 from threat_engine.policies import DECISION_TTLS
