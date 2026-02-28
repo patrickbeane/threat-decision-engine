@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <title>Explain {{ decision.ip }}</title>
-    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.colors.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.colors.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
@@ -20,7 +20,7 @@
                 'high': 'confidence-high',
                 'medium': 'confidence-medium',
                 'low': 'confidence-low'
-            }[decision.confidence.label] %}
+            }.get(decision.confidence.label, 'confidence-low') %}
 
             <span class="badge {{ conf_class }}">
                 {{ decision.confidence.label.upper() }}

@@ -1,6 +1,5 @@
 from threat_engine.validator import validate_and_sort
 
-
 def _threat(ip: str) -> dict:
     return {
         "ip": ip,
@@ -16,7 +15,6 @@ def _threat(ip: str) -> dict:
         ],
         "source": ["triton"],
     }
-
 
 def test_validator_accepts_valid_ipv4():
     threats = validate_and_sort([_threat("1.2.3.4")])
@@ -49,3 +47,13 @@ def test_validator_drops_invalid_ips():
     ]
     threats = validate_and_sort(raw)
     assert threats == []
+
+def test_validator_normalizes_invalid_confidence_label():
+    t = _threat("1.2.3.4")
+    t["confidence"]["label"] = "unexpected"
+    t["confidence"]["score"] = 0.9
+
+    threats = validate_and_sort([t])
+
+    assert len(threats) == 1
+    assert threats[0]["confidence"]["label"] == "high"

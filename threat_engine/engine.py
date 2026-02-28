@@ -3,6 +3,8 @@
 from threat_engine.policies import DECISION_RANK, DECISION_TTLS
 from threat_engine.rules import RULES
 from threat_engine.reasons import Reason
+from threat_engine.helpers import normalize_confidence_label
+
 
 def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dict:
     """
@@ -16,8 +18,16 @@ def decide(threat: dict, strike_count: int = 0, existing_decision = None) -> dic
       evidence
     }
     """
-    confidence = threat["confidence"]["score"]
-    confidence_label = threat["confidence"]["label"]
+    confidence_data = threat.get("confidence", {}) or {}
+    try:
+        confidence = float(confidence_data.get("score", 0.0))
+    except (TypeError, ValueError):
+        confidence = 0.0
+    confidence = max(0.0, min(confidence, 1.0))
+    confidence_label = normalize_confidence_label(
+        confidence_data.get("label"),
+        confidence,
+    )
 
     severity = threat.get("severity", {}) or {}
     severity_level = severity.get("level", "unknown")

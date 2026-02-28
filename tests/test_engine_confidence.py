@@ -14,3 +14,11 @@ def test_rule_ignored_if_confidence_too_low(threat):
     result = decide(threat)
 
     assert result["decision"] == "TEMP_BAN"
+
+def test_invalid_confidence_label_is_normalized(threat):
+    threat["confidence"]["score"] = 0.2
+    threat["confidence"]["label"] = "UNTRUSTED_LABEL"
+
+    result = decide(threat)
+
+    assert result["confidence"]["label"] == "low"

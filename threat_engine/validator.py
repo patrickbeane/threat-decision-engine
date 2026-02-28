@@ -1,5 +1,7 @@
 # threat_engine/validator.py
 
+from threat_engine.helpers import normalize_confidence_label
+
 from datetime import datetime
 import ipaddress
 from typing import List, Tuple
@@ -39,6 +41,15 @@ def validate_and_sort(threats: List[dict]) -> List[dict]:
                 0.0,
                 min(float(t.get("confidence", {}).get("score", 0.0)), 1.0)
             )
+            confidence_obj = t.get("confidence")
+            if not isinstance(confidence_obj, dict):
+                confidence_obj = {}
+            confidence_obj["score"] = confidence
+            confidence_obj["label"] = normalize_confidence_label(
+                confidence_obj.get("label"),
+                confidence,
+            )
+            t["confidence"] = confidence_obj
 
             severity = max(
                 0.0,

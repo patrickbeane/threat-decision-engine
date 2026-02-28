@@ -12,6 +12,14 @@ ds = DecisionStore()
 
 # Helpers
 
+def parse_page_param(name: str, default: int = 1) -> int:
+    raw = request.args.get(name, default)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return value if value >= 1 else default
+
 def human_delta(iso_ts: str) -> str:
     if not iso_ts:
         return "unknown"
@@ -86,9 +94,9 @@ def dashboard():
     temp.sort(key=lambda d: d["ttl_seconds"], reverse=True)
     watch.sort(key=lambda d: d["ttl_seconds"], reverse=True)
 
-    perm_page = int(request.args.get("perm_page", 1))
-    temp_page = int(request.args.get("temp_page", 1))
-    watch_page = int(request.args.get("watch_page", 1))
+    perm_page = parse_page_param("perm_page")
+    temp_page = parse_page_param("temp_page")
+    watch_page = parse_page_param("watch_page")
 
     perm_slice, perm_total = paginate(perm, perm_page)
     temp_slice, temp_total = paginate(temp, temp_page)
