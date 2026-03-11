@@ -27,7 +27,6 @@ DECISION_TTLS = {
 DECISION_ORDER = [
     "IGNORE",
     "WATCH",
-    "RATE_LIMIT",
     "TEMP_BAN",
     "PERM_BAN",
 ]

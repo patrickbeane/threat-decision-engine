@@ -41,7 +41,7 @@ def rule_repeated_noise(threat):
         and max(s.get("base_score", 0) for s in threat["scenarios"]) < 0.4
     ):
         return {
-            "decision": "RATE_LIMIT",
+            "decision": "TEMP_BAN",
             "confidence_required": 0.4,
             "reason": "REPEATED_LOW_CONFIDENCE_ACTIVITY",
         }

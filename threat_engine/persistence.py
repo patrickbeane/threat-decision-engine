@@ -5,6 +5,8 @@ import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+from threat_engine.policies import DECISION_RANK
+
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_DB = PROJECT_ROOT / Path("decisions.db")
 
@@ -92,15 +94,23 @@ class DecisionStore:
         now = datetime.now(timezone.utc).isoformat()
 
         with self._connect() as conn:
-            row = conn.execute("""
+            rows = conn.execute("""
                 SELECT *
                 FROM decisions
                 WHERE ip = ?
                   AND (expires_at IS NULL OR expires_at > ?)
-            """, (ip, now)).fetchone()
+            """, (ip, now)).fetchall()
 
-        if not row:
+        if not rows:
             return None
+
+        row = max(
+            rows,
+            key=lambda r: (
+                DECISION_RANK.get(r["decision"], -1),
+                r["last_seen"],
+            ),
+        )
 
         ttl_seconds = None
         if row["expires_at"]:

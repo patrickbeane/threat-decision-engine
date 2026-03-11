@@ -6,6 +6,7 @@ from datetime import datetime
 import ipaddress
 from typing import List, Tuple
 
+
 def validate_and_sort(threats: List[dict]) -> List[dict]:
     """
     Validate, normalize, and order threats.
@@ -67,7 +68,8 @@ def validate_and_sort(threats: List[dict]) -> List[dict]:
             sources = {s for s in sources if isinstance(s, str)}
 
             t["sources"] = sorted(sources)
-            t["node_count"] = len(sources)
+            # Default to 1 when sources are missing to avoid zero-node decisions.
+            t["node_count"] = max(1, len(sources))
 
             max_base = max(
                 float(s.get("base_score", 0.0)) for s in scenarios

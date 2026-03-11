@@ -6,35 +6,7 @@ from threat_engine.utils import format_duration
 from threat_engine.validator import validate_and_sort
 from threat_engine.engine import decide
 from threat_engine.helpers import load_input, ensure_ttl
-
-REASON_EXPLANATIONS = {
-    "POST_EXPLOITATION_INDICATORS":
-        "High-confidence indicators of post-exploitation activity were detected.",
-    "POST_EXPLOITATION_BEHAVIOR":
-        "Observed behavior consistent with post-compromise activity, such as backdoors, webshells, or lateral movement.",
-    "MULTI_STAGE_ATTACK":
-        "Multiple stages of an attack chain were observed within a short time window.",
-    "LOW_CONFIDENCE":
-        "Signals were observed, but confidence was below the automation threshold.",
-    "MULTI_NODE_OBSERVATION":
-        "Threat activity was observed independently on multiple nodes.",
-    "ESCALATED_MULTI_NODE":
-        "Enforcement was escalated due to repeated activity across nodes.",
-    "ESCALATED_DISTRIBUTED_ATTACK":
-        "Permanent enforcement applied due to coordinated distributed activity.",
-    "REPUTATION_ESCALATION_WARNING":
-        "Escalated reputation based on attacks within a short window.",
-    "REPUTATION_ESCALATION_CRITICAL":
-        "Further attacks within a short window, permanent ban applied based on indicators of persistence attacks.",
-    "HIGH_SEVERITY_SINGLE_NODE":
-        "High severity activity observed on a single node; enforcement applied based on severity.",
-    "SINGLE_NODE_ONLY":
-        "Observed on a single node, indicating non-distributed activity at time of detection.",
-    "LOW_SCENARIO_VOLUME":
-        "Detected activity is a limited amount of firewall scenarios.",
-    "PRESERVED_EXISTING_DECISION":
-        "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome."
-}
+from threat_engine.reasons import reason_description
 
 def explain_api_input(api_input, as_json=False):
     data = load_input(api_input)
@@ -55,10 +27,7 @@ def explain_structured(decision: dict) -> dict:
     for reason in decision.get("reason_codes", []):
         reasons.append({
             "code": reason,
-            "description": REASON_EXPLANATIONS.get(
-                reason,
-                f"Unmapped reason code: {reason}"
-            )
+            "description": reason_description(reason),
         })
 
     return {

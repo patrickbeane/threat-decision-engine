@@ -1,38 +1,7 @@
 # threat_engine/explain_cached.py
 
-from threat_engine.reasons import Reason
+from threat_engine.reasons import reason_description
 from threat_engine.utils import format_duration
-
-REASON_EXPLANATIONS = {
-    Reason.POST_EXPLOITATION_INDICATORS:
-        "High-confidence indicators of post-exploitation activity were detected.",
-    Reason.POST_EXPLOITATION_BEHAVIOR:
-        "Observed behavior consistent with post-compromise activity, such as backdoors, webshells, or lateral movement.",
-    Reason.MULTI_STAGE_ATTACK:
-        "Multiple stages of an attack chain were observed within a short time window.",
-    Reason.LOW_CONFIDENCE:
-        "Signals were observed, but confidence was below the automation threshold.",
-    Reason.SINGLE_NODE_ONLY:
-        "Threat activity was observed from a single node only.",
-    Reason.HIGH_SEVERITY_SINGLE_NODE:
-        "High severity exploit activity was observed, but only from a single node.",
-    Reason.MULTI_NODE_OBSERVATION:
-        "Threat activity was observed independently on multiple nodes.",
-    Reason.ESCALATED_MULTI_NODE:
-        "Enforcement was escalated due to repeated activity across nodes.",
-    Reason.ESCALATED_DISTRIBUTED_ATTACK:
-        "Permanent enforcement applied due to coordinated distributed activity.",
-    Reason.HIGH_SEVERITY_EXPLOIT:
-        "High severity exploit activity detected.",
-    Reason.REPEATED_LOW_CONFIDENCE_ACTIVITY:
-        "Repeated low-confidence activity observed.",
-    Reason.REPUTATION_ESCALATION_WARNING:
-        "Escalated reputation based on attacks within a short window.",
-    Reason.REPUTATION_ESCALATION_CRITICAL:
-        "Further attacks within a short window, permanent ban applied based on indicators of persistence attacks.",
-    Reason.PRESERVED_EXISTING_DECISION:
-        "An existing enforcement decision was retained because it was equal to or higher than the newly evaluated outcome.",
-}
 
 def explain_cached(decision: dict) -> str:
     lines = []
@@ -44,7 +13,7 @@ def explain_cached(decision: dict) -> str:
     mitre_techniques = decision.get("mitre_techniques", [])
 
     for reason in decision.get("reason_codes", []):
-        lines.append(f"  - {REASON_EXPLANATIONS.get(reason, reason)}")
+        lines.append(f"  - {reason_description(reason)}")
 
     ev = decision.get("evidence", {})
     if ev:
